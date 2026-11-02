@@ -7,10 +7,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class DependencyFetcher {
+    private static final int HTTP_OK = 200;
     private static final Pattern CRATE_ID_PATTERN = Pattern.compile("\"crate_id\"\\s*:\\s*\"([^\"]+)\"");
 
     public static PackageInfo fetchDependencies(String packageName, String version) throws IOException, InterruptedException {
-        String url = String.format("https://crates.io/api/v1/crates/%s/%s/dependencies", packageName, version);
+        String url = String.format(
+                "https://crates.io/api/v1/crates/%s/%s/dependencies",
+                packageName, version
+        );
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
@@ -21,8 +25,11 @@ public class DependencyFetcher {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        if (response.statusCode() != 200) {
-            throw new IOException("Не удалось получить данные из репозитория. Код ответа: " + response.statusCode());
+        if (response.statusCode() != HTTP_OK) {
+            throw new IOException(
+                    "Не удалось получить данные из репозитория. Код ответа: "
+                            + response.statusCode()
+            );
         }
 
         return parseDependencies(response.body(), packageName, version);

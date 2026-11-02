@@ -8,6 +8,7 @@ public final class Main {
     private static final String FOOTER = "==============================";
     private static final String FORMAT = "%-20s = %s%n";
     private static final int EXIT_ERROR = 1;
+
     private static final int DEFAULT_MAX_DEPTH = 5;
     private static final String TEST_START_PACKAGE = "A";
 
@@ -21,9 +22,18 @@ public final class Main {
             AppConfig config = ConfigLoader.load(configPath);
             ConfigValidator.validate(config);
             printConfig(config);
+            runStage3(config);
 
-            System.out.println("\n--- Построение графа зависимостей (Этап 3) ---");
+        } catch (IOException | IllegalArgumentException e) {
+            System.err.println("Ошибка: " + e.getMessage());
+            System.exit(EXIT_ERROR);
+        }
+    }
 
+    private static void runStage3(AppConfig config) {
+        System.out.println("\n--- Построение графа зависимостей (Этап 3) ---");
+
+        try {
             DependencyGraph graph = new DependencyGraph();
             Set<String> result;
 
@@ -32,13 +42,13 @@ public final class Main {
                 if (config.getTestRepositoryPath() == null || config.getTestRepositoryPath().isBlank()) {
                     throw new IllegalArgumentException("Для тестового режима укажите testRepositoryPath");
                 }
+
                 graph = GraphBuilder.loadTestGraph(config.getTestRepositoryPath());
                 GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
                 result = builder.buildGraph(TEST_START_PACKAGE);
 
             } else {
                 System.out.println("Режим: Реальный запрос к crates.io");
-
                 PackageInfo info = DependencyFetcher.fetchDependencies(
                         config.getPackageName(), config.getPackageVersion()
                 );
@@ -51,7 +61,7 @@ public final class Main {
                 result = builder.buildGraph(config.getPackageName());
             }
 
-            System.out.println("\nНайденные зависимости (BFS с рекурсией, с учетом фильтра и циклов):");
+            System.out.println("\nНайденные зависимости (BFS с рекурсией):");
             if (result.isEmpty()) {
                 System.out.println("Зависимости не найдены.");
             } else {
@@ -60,9 +70,8 @@ public final class Main {
                 }
             }
 
-        } catch (IOException | IllegalArgumentException | InterruptedException e) {
-            System.err.println("Ошибка: " + e.getMessage());
-            System.exit(EXIT_ERROR);
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Ошибка при получении зависимостей: " + e.getMessage());
         }
     }
 
