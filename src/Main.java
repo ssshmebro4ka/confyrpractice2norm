@@ -22,6 +22,7 @@ public final class Main {
             AppConfig config = ConfigLoader.load(configPath);
             ConfigValidator.validate(config);
             printConfig(config);
+
             runStage3(config);
 
         } catch (IOException | IllegalArgumentException e) {
@@ -34,32 +35,7 @@ public final class Main {
         System.out.println("\n--- Построение графа зависимостей (Этап 3) ---");
 
         try {
-            DependencyGraph graph = new DependencyGraph();
-            Set<String> result;
-
-            if (config.isTestMode()) {
-                System.out.println("Режим: Тестирование (чтение из файла)");
-                if (config.getTestRepositoryPath() == null || config.getTestRepositoryPath().isBlank()) {
-                    throw new IllegalArgumentException("Для тестового режима укажите testRepositoryPath");
-                }
-
-                graph = GraphBuilder.loadTestGraph(config.getTestRepositoryPath());
-                GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
-                result = builder.buildGraph(TEST_START_PACKAGE);
-
-            } else {
-                System.out.println("Режим: Реальный запрос к crates.io");
-                PackageInfo info = DependencyFetcher.fetchDependencies(
-                        config.getPackageName(), config.getPackageVersion()
-                );
-
-                for (String dep : info.getDependencies()) {
-                    graph.addEdge(config.getPackageName(), dep);
-                }
-
-                GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
-                result = builder.buildGraph(config.getPackageName());
-            }
+            Set<String> result = buildGraphFromConfig(config);
 
             System.out.println("\nНайденные зависимости (BFS с рекурсией):");
             if (result.isEmpty()) {
@@ -69,10 +45,35 @@ public final class Main {
                     System.out.println("- " + pkg);
                 }
             }
-
         } catch (IOException | InterruptedException e) {
             System.err.println("Ошибка при получении зависимостей: " + e.getMessage());
         }
+    }
+
+    private static Set<String> buildGraphFromConfig(AppConfig config) throws IOException, InterruptedException {
+        DependencyGraph graph = new DependencyGraph();
+        Set<String> result;
+
+        if (config.isTestMode()) {
+            System.out.println("Режим: Тестирование (чтение из файла)");
+            if (config.getTestRepositoryPath() == null || config.getTestRepositoryPath().isBlank()) {
+                throw new IllegalArgumentException("Для тестового режима укажите testRepositoryPath");
+            }
+            graph = GraphBuilder.loadTestGraph(config.getTestRepositoryPath());
+            GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
+            result = builder.buildGraph(TEST_START_PACKAGE);
+        } else {
+            System.out.println("Режим: Реальный запрос к crates.io");
+            PackageInfo info = DependencyFetcher.fetchDependencies(
+                    config.getPackageName(), config.getPackageVersion()
+            );
+            for (String dep : info.getDependencies()) {
+                graph.addEdge(config.getPackageName(), dep);
+            }
+            GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
+            result = builder.buildGraph(config.getPackageName());
+        }
+        return result;
     }
 
     private static void printConfig(AppConfig config) {

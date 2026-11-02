@@ -8,7 +8,10 @@ import java.util.regex.Pattern;
 
 public class DependencyFetcher {
     private static final int HTTP_OK = 200;
-    private static final Pattern CRATE_ID_PATTERN = Pattern.compile("\"crate_id\"\\s*:\\s*\"([^\"]+)\"");
+    private static final Pattern CRATE_ID_PATTERN = Pattern.compile(
+            "\"crate_id\"\\s*:\\s*" +
+                    "\"([^\"]+)\""
+    );
 
     public static PackageInfo fetchDependencies(String packageName, String version) throws IOException, InterruptedException {
         String url = String.format(
@@ -26,9 +29,10 @@ public class DependencyFetcher {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != HTTP_OK) {
+            // Р6: Разбили текст ошибки
             throw new IOException(
-                    "Не удалось получить данные из репозитория. Код ответа: "
-                            + response.statusCode()
+                    "Не удалось получить данные из репозитория. " +
+                            "Код ответа: " + response.statusCode()
             );
         }
 
