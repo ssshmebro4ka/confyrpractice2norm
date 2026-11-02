@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.Set;
 
 public final class Main {
     private static final String DEFAULT_CONFIG_PATH = "config.json";
@@ -7,6 +8,8 @@ public final class Main {
     private static final String FOOTER = "==============================";
     private static final String FORMAT = "%-20s = %s%n";
     private static final int EXIT_ERROR = 1;
+    private static final int DEFAULT_MAX_DEPTH = 5;
+    private static final String TEST_START_PACKAGE = "A";
 
     private Main() {
     }
@@ -17,34 +20,47 @@ public final class Main {
         try {
             AppConfig config = ConfigLoader.load(configPath);
             ConfigValidator.validate(config);
-
             printConfig(config);
 
-            System.out.println("\n--- Прямые зависимости пакета ---");
+            System.out.println("\n--- Построение графа зависимостей (Этап 3) ---");
 
-            if (!config.isTestMode()) {
-                try {
-                    PackageInfo info = DependencyFetcher.fetchDependencies(
-                            config.getPackageName(),
-                            config.getPackageVersion()
-                    );
+            DependencyGraph graph = new DependencyGraph();
+            Set<String> result;
 
-                    if (info.getDependencies().isEmpty()) {
-                        System.out.println("Зависимости не найдены (или пакет не имеет зависимостей).");
-                    } else {
-                        for (String dep : info.getDependencies()) {
-                            System.out.println("- " + dep);
-                        }
-                    }
-                } catch (IOException | InterruptedException e) {
-                    System.err.println("Ошибка при получении зависимостей: " + e.getMessage());
+            if (config.isTestMode()) {
+                System.out.println("Режим: Тестирование (чтение из файла)");
+                if (config.getTestRepositoryPath() == null || config.getTestRepositoryPath().isBlank()) {
+                    throw new IllegalArgumentException("Для тестового режима укажите testRepositoryPath");
                 }
+                graph = GraphBuilder.loadTestGraph(config.getTestRepositoryPath());
+                GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
+                result = builder.buildGraph(TEST_START_PACKAGE);
+
             } else {
-                System.out.println("[Режим тестирования] Пропуск сетевого запроса. Ожидается путь к файлу: "
-                        + config.getTestRepositoryPath());
+                System.out.println("Режим: Реальный запрос к crates.io");
+
+                PackageInfo info = DependencyFetcher.fetchDependencies(
+                        config.getPackageName(), config.getPackageVersion()
+                );
+
+                for (String dep : info.getDependencies()) {
+                    graph.addEdge(config.getPackageName(), dep);
+                }
+
+                GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
+                result = builder.buildGraph(config.getPackageName());
             }
 
-        } catch (IOException | IllegalArgumentException e) {
+            System.out.println("\nНайденные зависимости (BFS с рекурсией, с учетом фильтра и циклов):");
+            if (result.isEmpty()) {
+                System.out.println("Зависимости не найдены.");
+            } else {
+                for (String pkg : result) {
+                    System.out.println("- " + pkg);
+                }
+            }
+
+        } catch (IOException | IllegalArgumentException | InterruptedException e) {
             System.err.println("Ошибка: " + e.getMessage());
             System.exit(EXIT_ERROR);
         }
