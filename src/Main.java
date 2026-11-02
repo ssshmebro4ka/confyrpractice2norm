@@ -1,11 +1,6 @@
 import java.io.IOException;
 
-/**
- * Точка входа приложения.
- * Загружает конфигурацию, валидирует её и выводит параметры.
- */
 public final class Main {
-
     private static final String DEFAULT_CONFIG_PATH = "config.json";
     private static final String NULL_PLACEHOLDER = "(не задано)";
     private static final String HEADER = "=== Параметры конфигурации ===";
@@ -16,14 +11,39 @@ public final class Main {
     private Main() {
     }
 
-
     public static void main(String[] args) {
         String configPath = args.length > 0 ? args[0] : DEFAULT_CONFIG_PATH;
 
         try {
             AppConfig config = ConfigLoader.load(configPath);
             ConfigValidator.validate(config);
+
             printConfig(config);
+
+            System.out.println("\n--- Прямые зависимости пакета ---");
+
+            if (!config.isTestMode()) {
+                try {
+                    PackageInfo info = DependencyFetcher.fetchDependencies(
+                            config.getPackageName(),
+                            config.getPackageVersion()
+                    );
+
+                    if (info.getDependencies().isEmpty()) {
+                        System.out.println("Зависимости не найдены (или пакет не имеет зависимостей).");
+                    } else {
+                        for (String dep : info.getDependencies()) {
+                            System.out.println("- " + dep);
+                        }
+                    }
+                } catch (IOException | InterruptedException e) {
+                    System.err.println("Ошибка при получении зависимостей: " + e.getMessage());
+                }
+            } else {
+                System.out.println("[Режим тестирования] Пропуск сетевого запроса. Ожидается путь к файлу: "
+                        + config.getTestRepositoryPath());
+            }
+
         } catch (IOException | IllegalArgumentException e) {
             System.err.println("Ошибка: " + e.getMessage());
             System.exit(EXIT_ERROR);

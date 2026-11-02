@@ -9,7 +9,6 @@ import java.util.Map;
 public final class ConfigLoader {
 
     private static final String NULL_LITERAL = "null";
-
     private static final int QUOTES_LENGTH = 2;
     private static final int QUOTE_TRIM_INDEX = 1;
     private static final int PAIR_SPLIT_LIMIT = 2;
@@ -78,8 +77,10 @@ public final class ConfigLoader {
         if (kv.length != PAIR_SPLIT_LIMIT) {
             throw new IllegalArgumentException("Некорректная пара ключ-значение: " + pair);
         }
-        String key = stripQuotes(kv[0].trim());
+
+        String key = stripQuotes(kv[0]);
         String value = stripQuotes(kv[1]);
+
         if (NULL_LITERAL.equals(value)) {
             value = null;
         }
@@ -87,9 +88,7 @@ public final class ConfigLoader {
     }
 
     private static String stripQuotes(String value) {
-
         String cleaned = value.trim();
-
         if (cleaned.length() >= QUOTES_LENGTH && cleaned.startsWith("\"") && cleaned.endsWith("\"")) {
             return cleaned.substring(QUOTE_TRIM_INDEX, cleaned.length() - QUOTE_TRIM_INDEX);
         }
