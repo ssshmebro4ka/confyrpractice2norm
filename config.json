@@ -1,8 +1,8 @@
 {
-  "packageName": "serde",
+  "packageName": "A",
   "repositoryUrl": "https://crates.io",
-  "testRepositoryPath": null,
-  "testMode": false,
-  "packageVersion": "1.0.188",
-  "filterSubstring": "derive"
+  "testRepositoryPath": "test_graph.txt",
+  "testMode": true,
+  "packageVersion": "1.0.0",
+  "filterSubstring": "E"
 }

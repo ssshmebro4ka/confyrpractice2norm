@@ -25,21 +25,20 @@ public class GraphBuilder {
     }
 
     private void bfsRecursive(String currentPackage, int currentDepth) {
+        if (currentPackage == null) {
+            return;
+        }
         if (currentDepth > maxDepth) {
             return;
         }
-
         if (filterSubstring != null && !filterSubstring.isBlank()
                 && currentPackage.contains(filterSubstring)) {
             return;
         }
-
         if (visited.contains(currentPackage)) {
             return;
         }
-
         visited.add(currentPackage);
-
         for (String dependency : graph.getDependencies(currentPackage)) {
             bfsRecursive(dependency, currentDepth + 1);
         }
@@ -54,12 +53,16 @@ public class GraphBuilder {
 
             String[] parts = line.split(":", 2);
             String mainPackage = parts[0].trim();
-            String[] deps = parts[1].split(",");
 
-            testGraph.addEdge(mainPackage, null); // Добавляем сам пакет
+            if (mainPackage.isEmpty()) continue;
+
+            String[] deps = parts[1].split(",");
+            testGraph.addEdge(mainPackage, mainPackage);
+
             for (String dep : deps) {
-                if (!dep.trim().isEmpty()) {
-                    testGraph.addEdge(mainPackage, dep.trim());
+                String depName = dep.trim();
+                if (!depName.isEmpty()) {
+                    testGraph.addEdge(mainPackage, depName);
                 }
             }
         }
