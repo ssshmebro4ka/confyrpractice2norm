@@ -3,17 +3,21 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class DependencyFetcher {
     private static final int HTTP_OK = 200;
+
     private static final Pattern CRATE_ID_PATTERN = Pattern.compile(
-            "\"crate_id\"\\s*:\\s*" +
-                    "\"([^\"]+)\""
+            "\"crate_id\"\\s*:\\s*\"([^\"]+)\""
     );
 
-    public static PackageInfo fetchDependencies(String packageName, String version) throws IOException, InterruptedException {
+    public static PackageInfo fetchDependencies(String packageName, String version)
+            throws IOException, InterruptedException {
+
         String url = String.format(
                 "https://crates.io/api/v1/crates/%s/%s/dependencies",
                 packageName, version
@@ -29,11 +33,9 @@ public class DependencyFetcher {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != HTTP_OK) {
-            // Р6: Разбили текст ошибки
-            throw new IOException(
-                    "Не удалось получить данные из репозитория. " +
-                            "Код ответа: " + response.statusCode()
-            );
+            String errorMessage = "Не удалось получить данные из репозитория. "
+                    + "Код ответа: " + response.statusCode();
+            throw new IOException(errorMessage);
         }
 
         return parseDependencies(response.body(), packageName, version);
@@ -41,7 +43,7 @@ public class DependencyFetcher {
 
     private static PackageInfo parseDependencies(String jsonResponse, String packageName, String version) {
         PackageInfo packageInfo = new PackageInfo(packageName, version);
-        java.util.Set<String> uniqueDeps = new java.util.HashSet<>();
+        Set<String> uniqueDeps = new HashSet<>();
 
         Matcher matcher = CRATE_ID_PATTERN.matcher(jsonResponse);
         while (matcher.find()) {
