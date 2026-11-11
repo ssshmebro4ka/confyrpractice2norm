@@ -23,7 +23,7 @@ public final class Main {
             ConfigValidator.validate(config);
             printConfig(config);
 
-            runStage3And4(config);
+            runStages(config);
 
         } catch (IOException | IllegalArgumentException e) {
             System.err.println("Ошибка: " + e.getMessage());
@@ -31,40 +31,48 @@ public final class Main {
         }
     }
 
-    private static void runStage3And4(AppConfig config) {
+    private static void runStages(AppConfig config) {
         System.out.println("\n--- Построение графа зависимостей ---");
 
         try {
-            Set<String> result = buildGraphFromConfig(config);
+
+            DependencyGraph graph = buildGraph(config);
+
+            String startPackage = config.isTestMode() ? TEST_START_PACKAGE : config.getPackageName();
+
+            GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
+            Set<String> result;
 
             if (config.isReverseMode()) {
-                System.out.println("\nНайденные обратные зависимости (кто зависит от пакета):");
+                System.out.println("Направление: Обратные зависимости (кто зависит от пакета)");
+                result = builder.buildReverseGraph(startPackage);
             } else {
-                System.out.println("\nНайденные прямые зависимости (BFS с рекурсией):");
+                System.out.println("Направление: Прямые зависимости (BFS)");
+                result = builder.buildGraph(startPackage);
             }
 
-            if (result.isEmpty()) {
-                System.out.println("Зависимости не найдены.");
-            } else {
-                for (String pkg : result) {
-                    System.out.println("- " + pkg);
-                }
+            printResult(result, config.isReverseMode());
+
+            if (config.isVisualizeMode()) {
+                System.out.println("\n--- Текстовое представление графа (Graphviz/DOT) ---");
+                String dotCode = GraphvizExporter.generateDot(graph, result);
+                System.out.println(dotCode);
             }
+
         } catch (IOException | InterruptedException e) {
             System.err.println("Ошибка при получении зависимостей: " + e.getMessage());
         }
     }
 
-    private static Set<String> buildGraphFromConfig(AppConfig config) throws IOException, InterruptedException {
+    private static DependencyGraph buildGraph(AppConfig config) throws IOException, InterruptedException {
         DependencyGraph graph = new DependencyGraph();
-        Set<String> result;
 
         if (config.isTestMode()) {
             System.out.println("Режим: Тестирование (чтение из файла)");
             if (config.getTestRepositoryPath() == null || config.getTestRepositoryPath().isBlank()) {
                 throw new IllegalArgumentException("Для тестового режима укажите testRepositoryPath");
             }
-            graph = GraphBuilder.loadTestGraph(config.getTestRepositoryPath());
+            return GraphBuilder.loadTestGraph(config.getTestRepositoryPath());
         } else {
             System.out.println("Режим: Реальный запрос к crates.io");
             PackageInfo info = DependencyFetcher.fetchDependencies(
@@ -73,21 +81,24 @@ public final class Main {
             for (String dep : info.getDependencies()) {
                 graph.addEdge(config.getPackageName(), dep);
             }
+            return graph;
         }
+    }
 
-        GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
-
-        String startPackage = config.isTestMode() ? TEST_START_PACKAGE : config.getPackageName();
-
-        if (config.isReverseMode()) {
-            System.out.println("Направление: Обратные зависимости");
-            result = builder.buildReverseGraph(startPackage);
+    private static void printResult(Set<String> result, boolean isReverse) {
+        if (isReverse) {
+            System.out.println("\nНайденные обратные зависимости (кто зависит от пакета):");
         } else {
-            System.out.println("Направление: Прямые зависимости");
-            result = builder.buildGraph(startPackage);
+            System.out.println("\nНайденные прямые зависимости (BFS с рекурсией):");
         }
 
-        return result;
+        if (result.isEmpty()) {
+            System.out.println("Зависимости не найдены.");
+        } else {
+            for (String pkg : result) {
+                System.out.println("- " + pkg);
+            }
+        }
     }
 
     private static void printConfig(AppConfig config) {
@@ -99,6 +110,7 @@ public final class Main {
         printPair("packageVersion", config.getPackageVersion());
         printPair("filterSubstring", config.getFilterSubstring());
         printPair("reverseMode", String.valueOf(config.isReverseMode()));
+        printPair("visualizeMode", String.valueOf(config.isVisualizeMode()));
         System.out.println(FOOTER);
     }
 

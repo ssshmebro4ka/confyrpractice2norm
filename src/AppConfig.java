@@ -7,10 +7,11 @@ public final class AppConfig {
     private final String packageVersion;
     private final String filterSubstring;
     private final boolean reverseMode;
+    private final boolean visualizeMode;
 
     public AppConfig(String packageName, String repositoryUrl, String testRepositoryPath,
                      boolean testMode, String packageVersion, String filterSubstring,
-                     boolean reverseMode) {
+                     boolean reverseMode, boolean visualizeMode) {
         this.packageName = packageName;
         this.repositoryUrl = repositoryUrl;
         this.testRepositoryPath = testRepositoryPath;
@@ -18,6 +19,7 @@ public final class AppConfig {
         this.packageVersion = packageVersion;
         this.filterSubstring = filterSubstring;
         this.reverseMode = reverseMode;
+        this.visualizeMode = visualizeMode;
     }
 
     public String getPackageName() {
@@ -46,5 +48,8 @@ public final class AppConfig {
 
     public boolean isReverseMode() {
         return reverseMode;
+    }
+    public boolean isVisualizeMode() {
+        return visualizeMode;
     }
 }

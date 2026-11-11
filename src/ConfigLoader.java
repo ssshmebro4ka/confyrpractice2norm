@@ -46,7 +46,8 @@ public final class ConfigLoader {
                 Boolean.parseBoolean(raw.getOrDefault("testMode", "false")),
                 raw.get("packageVersion"),
                 raw.get("filterSubstring"),
-                Boolean.parseBoolean(raw.getOrDefault("reverseMode", "false"))
+                Boolean.parseBoolean(raw.getOrDefault("reverseMode", "false")),
+                Boolean.parseBoolean(raw.getOrDefault("visualizeMode", "false"))
         );
     }
 

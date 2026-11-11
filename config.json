@@ -5,5 +5,6 @@
   "testMode": true,
   "packageVersion": "1.0.0",
   "filterSubstring": "",
-  "reverseMode": true
+  "reverseMode": true,
+  "visualizeMode": true
 }
