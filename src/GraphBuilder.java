@@ -25,22 +25,36 @@ public class GraphBuilder {
     }
 
     private void bfsRecursive(String currentPackage, int currentDepth) {
-        if (currentPackage == null) {
-            return;
-        }
-        if (currentDepth > maxDepth) {
-            return;
-        }
+        if (currentPackage == null) return;
+        if (currentDepth > maxDepth) return;
         if (filterSubstring != null && !filterSubstring.isBlank()
-                && currentPackage.contains(filterSubstring)) {
-            return;
-        }
-        if (visited.contains(currentPackage)) {
-            return;
-        }
+                && currentPackage.contains(filterSubstring)) return;
+        if (visited.contains(currentPackage)) return;
+
         visited.add(currentPackage);
+
         for (String dependency : graph.getDependencies(currentPackage)) {
             bfsRecursive(dependency, currentDepth + 1);
+        }
+    }
+
+    public Set<String> buildReverseGraph(String startPackage) {
+        visited.clear();
+        bfsReverseRecursive(startPackage, 0);
+        return visited;
+    }
+
+    private void bfsReverseRecursive(String currentPackage, int currentDepth) {
+        if (currentPackage == null) return;
+        if (currentDepth > maxDepth) return;
+        if (filterSubstring != null && !filterSubstring.isBlank()
+                && currentPackage.contains(filterSubstring)) return;
+        if (visited.contains(currentPackage)) return;
+
+        visited.add(currentPackage);
+
+        for (String parent : graph.getReverseDependencies(currentPackage)) {
+            bfsReverseRecursive(parent, currentDepth + 1);
         }
     }
 

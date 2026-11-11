@@ -18,4 +18,14 @@ public class DependencyGraph {
     public boolean containsNode(String packageName) {
         return adjacencyList.containsKey(packageName);
     }
+
+    public Set<String> getReverseDependencies(String targetPackage) {
+        Set<String> reverseDeps = new HashSet<>();
+        for (Map.Entry<String, Set<String>> entry : adjacencyList.entrySet()) {
+            if (entry.getValue().contains(targetPackage)) {
+                reverseDeps.add(entry.getKey());
+            }
+        }
+        return reverseDeps;
+    }
 }

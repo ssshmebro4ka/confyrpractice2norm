@@ -23,7 +23,7 @@ public final class Main {
             ConfigValidator.validate(config);
             printConfig(config);
 
-            runStage3(config);
+            runStage3And4(config);
 
         } catch (IOException | IllegalArgumentException e) {
             System.err.println("Ошибка: " + e.getMessage());
@@ -31,13 +31,18 @@ public final class Main {
         }
     }
 
-    private static void runStage3(AppConfig config) {
-        System.out.println("\n--- Построение графа зависимостей (Этап 3) ---");
+    private static void runStage3And4(AppConfig config) {
+        System.out.println("\n--- Построение графа зависимостей ---");
 
         try {
             Set<String> result = buildGraphFromConfig(config);
 
-            System.out.println("\nНайденные зависимости (BFS с рекурсией):");
+            if (config.isReverseMode()) {
+                System.out.println("\nНайденные обратные зависимости (кто зависит от пакета):");
+            } else {
+                System.out.println("\nНайденные прямые зависимости (BFS с рекурсией):");
+            }
+
             if (result.isEmpty()) {
                 System.out.println("Зависимости не найдены.");
             } else {
@@ -60,8 +65,6 @@ public final class Main {
                 throw new IllegalArgumentException("Для тестового режима укажите testRepositoryPath");
             }
             graph = GraphBuilder.loadTestGraph(config.getTestRepositoryPath());
-            GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
-            result = builder.buildGraph(TEST_START_PACKAGE);
         } else {
             System.out.println("Режим: Реальный запрос к crates.io");
             PackageInfo info = DependencyFetcher.fetchDependencies(
@@ -70,9 +73,20 @@ public final class Main {
             for (String dep : info.getDependencies()) {
                 graph.addEdge(config.getPackageName(), dep);
             }
-            GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
-            result = builder.buildGraph(config.getPackageName());
         }
+
+        GraphBuilder builder = new GraphBuilder(graph, config.getFilterSubstring(), DEFAULT_MAX_DEPTH);
+
+        String startPackage = config.isTestMode() ? TEST_START_PACKAGE : config.getPackageName();
+
+        if (config.isReverseMode()) {
+            System.out.println("Направление: Обратные зависимости");
+            result = builder.buildReverseGraph(startPackage);
+        } else {
+            System.out.println("Направление: Прямые зависимости");
+            result = builder.buildGraph(startPackage);
+        }
+
         return result;
     }
 
@@ -84,6 +98,7 @@ public final class Main {
         printPair("testMode", String.valueOf(config.isTestMode()));
         printPair("packageVersion", config.getPackageVersion());
         printPair("filterSubstring", config.getFilterSubstring());
+        printPair("reverseMode", String.valueOf(config.isReverseMode()));
         System.out.println(FOOTER);
     }
 

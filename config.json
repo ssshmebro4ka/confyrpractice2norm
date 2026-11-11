@@ -1,8 +1,9 @@
 {
-  "packageName": "A",
+  "packageName": "D",
   "repositoryUrl": "https://crates.io",
   "testRepositoryPath": "test_graph.txt",
   "testMode": true,
   "packageVersion": "1.0.0",
-  "filterSubstring": "E"
+  "filterSubstring": "",
+  "reverseMode": true
 }

@@ -45,7 +45,8 @@ public final class ConfigLoader {
                 raw.get("testRepositoryPath"),
                 Boolean.parseBoolean(raw.getOrDefault("testMode", "false")),
                 raw.get("packageVersion"),
-                raw.get("filterSubstring")
+                raw.get("filterSubstring"),
+                Boolean.parseBoolean(raw.getOrDefault("reverseMode", "false"))
         );
     }
 
